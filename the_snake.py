@@ -31,10 +31,14 @@ APPLE_COLOR = (255, 0, 0)
 # Цвет змейки
 SNAKE_COLOR = (0, 255, 0)
 
+# Цвет и координаты текста при проигрыше
+LOOSE_TEXT_COLOR = 255, 255, 255
+LOOSE_TEXT_COORD = 10, 50
+
 # Скорость движения змейки:
 SPEED = 10
 LOOSE_TIME = 5
-Accel = 1.05
+ACCEL = 1.05
 
 # Настройка игрового окна:
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
@@ -97,7 +101,7 @@ class Snake(GameObject):
             self.direction = self.next_direction
             self.next_direction = None
 
-    def draw(self, surface):
+    def draw(self, surface=screen):
         """Метод отрисовывает змею"""
         # Отрисовка головы змейки
         self.game_object_rect(position=self.positions[0])
@@ -126,15 +130,23 @@ class Snake(GameObject):
 class Apple(GameObject):
     """Здесь содержится информация о дочернем классе Apple"""
 
-    def randomize_position(self):
-        """Метод задает рандомную позицию для яблока"""
-        self.position = (
-            (randint(0, (GRID_WIDTH - 1)) * GRID_SIZE),
-            (randint(0, (GRID_HEIGHT - 1)) * GRID_SIZE))
-
     def __init__(self, body_color=APPLE_COLOR):
         super().__init__(body_color)
-        self.randomize_position()
+
+    def randomize_position(self, second_object_positions):
+        """Метод задает рандомную позицию для яблока"""
+        while True:
+            self.position = (
+                (randint(0, (GRID_WIDTH - 1)) * GRID_SIZE),
+                (randint(0, (GRID_HEIGHT - 1)) * GRID_SIZE))
+            if self.position in second_object_positions:
+                continue
+            else:
+                break
+
+    def draw(self):
+        """Метод отрисовывает яблоко"""
+        self.game_object_rect(position=self.position)
 
 
 def handle_keys(game_object):
@@ -162,30 +174,29 @@ def main():
     """Основной код игры тут"""
     global SPEED
     # Тут нужно создать экземпляры классов.
-    apple = Apple()
     snake = Snake()
-    # screen.fill(BOARD_BACKGROUND_COLOR)
+    apple = Apple()
     while True:
         clock.tick(SPEED)
         # Тут опишите основную логику игры.
         handle_keys(snake)
         snake.move()
-        apple.game_object_rect(position=apple.position)
-        snake.draw(screen)
+        apple.draw()
+        snake.draw()
         if snake.positions[0] == apple.position:
             apples_death = pygame.Rect(
                 (apple.position[0], apple.position[1]),
                 (GRID_SIZE, GRID_SIZE)
             )
             pygame.draw.rect(screen, SNAKE_COLOR, apples_death)
-            apple.randomize_position()
+            apple.randomize_position(second_object_positions=snake.positions)
             snake.length += 1
-            SPEED *= Accel
+            SPEED *= ACCEL
         if snake.get_head_position() in snake.positions[3:]:
             loose_text = FORMAT.render(f'Ваш результат: {snake.length}'
                                        f' очков! Попробуйте еще раз!',
-                                       1, (255, 255, 255))
-            screen.blit(loose_text, (10, 50))
+                                       True, (LOOSE_TEXT_COLOR))
+            screen.blit(loose_text, (LOOSE_TEXT_COORD))
             pygame.display.update()
             time.sleep(LOOSE_TIME)
             snake.reset()
